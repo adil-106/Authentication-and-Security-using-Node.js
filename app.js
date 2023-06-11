@@ -6,6 +6,9 @@ const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const encrypt = require("mongoose-encryption");
 const md5 = require("md5");
+const bcrypt = require("bcrypt");
+
+const saltRounds = 10;
 
 const app = express();
 app.set("view engine","ejs");
@@ -42,36 +45,39 @@ app.get("/logout",function(req,res){
 
 app.post("/register",function(req,res){
     const username = req.body.username;
-    const password = md5(req.body.password);
+    const password = req.body.password;
 
-    const user = new User({
-        email: username,
-        password: password
+    bcrypt.hash(password, saltRounds, function(err, hash) {
+        // Store hash in your password DB.
+        const user = new User({
+            email: username,
+            password: hash
+        });
+    
+        user.save()
+        .then(function(result){
+            console.log("Registered user successfully");
+            res.render("secrets");
+        })
+        .catch(function(err){
+            console.log("There was an error registering this user",err);
+            res.render("register");
+        });
     });
-
-    user.save()
-    .then(function(result){
-        console.log("Registered user successfully");
-        res.render("secrets");
-    })
-    .catch(function(err){
-        console.log("There was an error registering this user",err);
-        res.render("register");
-    });
-
 });
 
 app.post("/login",function(req,res){
     User.findOne({email:req.body.username})
     .then(function(result){
         console.log("Found the user. Checking the password",result);
-        if(result.password === md5(req.body.password)){
-            res.render("secrets");
-        }
-        else {
-            res.send("Enter correct password");
-        }
-        
+        bcrypt.compare(req.body.password, result.password, function(err, result) {
+            if(result === true){
+                res.render("secrets");
+            }
+            else {
+                res.send("Enter correct password");
+            }
+        });   
     })
     .catch(function(err){
         console.log("There was an error finding this user",err);
