@@ -18,7 +18,7 @@ app.set("view engine","ejs");
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.static("public"));
 app.use(session({
-    secret: "Our Little Secret.",
+    secret: process.env.SECRET,
     resave: false,
     saveUninitialized: false
 }));
@@ -79,7 +79,7 @@ app.post("/register",function(req,res){
             res.redirect("/register");
         } 
         else{
-            passport.authenticate("local")(req,res,function(){
+            passport.authenticate("local",{ failureRedirect: '/register' })(req,res,function(){
                 res.redirect("/secrets");
             });
         }
@@ -119,7 +119,7 @@ app.post("/login",function(req,res){
         if(err){
             console.log(err);
         } else {
-            passport.authenticate("local")(req,res,function(){
+            passport.authenticate("local",{ failureRedirect: '/login' ,failureMessage: true })(req,res,function(){
                 res.redirect("/secrets");
             });
         }
